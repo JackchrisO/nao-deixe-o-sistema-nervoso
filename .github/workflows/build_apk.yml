@@ -1,3 +1,4 @@
+
 name: Build APK
 
 on:
@@ -8,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -21,7 +22,7 @@ jobs:
         run: |
           buildozer android debug
       - name: Upload APK
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ndsn.apk
           path: bin/*.apk
