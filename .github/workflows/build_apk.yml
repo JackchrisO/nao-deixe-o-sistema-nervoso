@@ -21,6 +21,9 @@ jobs:
           sudo apt-get install -y openjdk-11-jdk-headless git
       - name: Install Android SDK
         uses: android-actions/setup-android@v3
+      - name: Accept licenses
+        run: |
+          yes | sdkmanager --licenses
       - name: Build APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
