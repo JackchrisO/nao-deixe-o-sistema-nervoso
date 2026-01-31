@@ -21,9 +21,9 @@ jobs:
           sudo apt-get install -y openjdk-11-jdk-headless git
       - name: Install Android SDK
         run: |
-          wget https://dl.google.com/android/repository/command-line-tools-linux-9471167_latest.zip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
           mkdir -p $HOME/Android/cmdline-tools
-          unzip command-line-tools-linux-9471167_latest.zip -d $HOME/Android/cmdline-tools
+          unzip commandlinetools-linux-14742923_latest.zip -d $HOME/Android/cmdline-tools
           mv $HOME/Android/cmdline-tools/cmdline-tools $HOME/Android/cmdline-tools/latest
           export ANDROID_HOME=$HOME/Android
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
