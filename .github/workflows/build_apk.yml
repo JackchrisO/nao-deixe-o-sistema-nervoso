@@ -1,4 +1,3 @@
-
 name: Build APK
 on:
   push:
@@ -24,8 +23,8 @@ jobs:
           sudo apt install -y openjdk-11-jdk-headless
       - name: Install Android SDK
         run: |
-          wget https://dl.google.com/android/repository/commandlinetools-linux-7584023_latest.zip
-          unzip commandlinetools-linux-7584023_latest.zip
+          wget https://dl.google.com/android/repository/command-line-tools-linux-11076708_latest.zip
+          unzip command-line-tools-linux-11076708_latest.zip
           mkdir -p $ANDROID_HOME/cmdline-tools/latest
           mv cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
