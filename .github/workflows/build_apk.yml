@@ -20,19 +20,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y openjdk-11-jdk-headless git
       - name: Install Android SDK
-        uses: android-actions/setup-android@v3
-      - name: Accept licenses
         run: |
+          wget https://dl.google.com/android/repository/command-line-tools-linux-9471167_latest.zip
+          mkdir -p $HOME/Android/cmdline-tools
+          unzip command-line-tools-linux-9471167_latest.zip -d $HOME/Android/cmdline-tools
+          mv $HOME/Android/cmdline-tools/cmdline-tools $HOME/Android/cmdline-tools/latest
+          export ANDROID_HOME=$HOME/Android
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
           yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
       - name: Build APK
         env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_HOME: $HOME/Android
         run: |
           [ -f buildozer.spec ] && rm buildozer.spec || true
           buildozer init
           echo "android.api = 30" >> buildozer.spec
           echo "android.minapi = 21" >> buildozer.spec
           echo "android.sdk = 30" >> buildozer.spec
+          echo "android.build_tools_version = 30.0.3" >> buildozer.spec
           buildozer android debug
       - name: Upload APK
         uses: actions/upload-artifact@v4
