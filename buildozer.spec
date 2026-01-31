@@ -20,7 +20,7 @@ source.include_exts = py,png,jpg,kv,atlas
 # (str) Icon of the application
 #icon.filename = %(source.dir)s/data/icon.png
 # (str) Supported android version
-android.arch = armeabi-v7a
+android.archs = armeabi-v7a
 android.minapi = 21
 android.sdk = 30
 android.ndk = 19b
@@ -73,7 +73,7 @@ android.release = debug
 #android.permissions = INTERNET
 
 [requirements]
-python3,kivy
+python3,kivy,cython
 
 [presplash]
 # (file) Presplash of the application
