@@ -19,8 +19,8 @@ jobs:
           pip install buildozer kivy cython
       - name: Install JDK
         run: |
-          sudo apt update
-          sudo apt install -y openjdk-11-jdk-headless
+          apt-get update
+          apt-get install -y openjdk-11-jdk-headless
       - name: Install Android SDK
         run: |
           wget https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
@@ -34,7 +34,7 @@ jobs:
         env:
           PATH: $PATH:$ANDROID_HOME/cmdline-tools/latest/bin
         run: |
-          sudo apt install -y git
+          apt-get update && apt-get install -y git
           [ -f buildozer.spec ] && rm buildozer.spec || true
           buildozer init
           echo "android.api = 30" >> buildozer.spec
