@@ -45,6 +45,8 @@ jobs:
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "build-tools;30.0.3" \
+            "build-tools;31.0.0" \
+            "build-tools;33.0.2" \
             "platforms;android-30"
 
       - name: Ensure buildozer.spec exists
