@@ -39,6 +39,8 @@ jobs:
           mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
           echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
@@ -47,6 +49,9 @@ jobs:
             "build-tools;30.0.3" \
             "platforms;android-30" \
             "ndk;25.2.9519653"
+
+      - name: Clean old NDK
+        run: rm -rf .buildozer/android/platform/android-ndk-r19b
 
       - name: Link SDK + NDK for Buildozer
         run: |
