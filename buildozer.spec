@@ -25,6 +25,7 @@ android.minapi = 21
 android.sdk = 30
 android.ndk = 19b
 android.release = debug
+android.sdk_path = /home/runner/android-sdk
 # (int) API to use
 #android.api = 30
 # (int) Android min API to use
