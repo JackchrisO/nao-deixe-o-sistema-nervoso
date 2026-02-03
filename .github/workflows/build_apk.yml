@@ -4,10 +4,11 @@ on:
   push:
     branches: [ main ]
 
+jobs:
   build:
     runs-on: ubuntu-latest
    
-   steps:
+    steps:
       - uses: actions/checkout@v4
 
       - name: Install build essentials
@@ -19,10 +20,10 @@ on:
             zip unzip git openjdk-11-jdk-headless \
             libssl-dev python3-dev \
             libgl1-mesa-dev libgles2-mesa-dev
-
             
       - name: List Android Packages
         run: sudo $ANDROID_HOME/tools/bin/sdkmanager --list | sed -n '/Available Packages/q;p'
+
       - name: Accept license 34.0.0-rc3
         run: echo "y" | sudo $ANDROID_HOME/tools/bin/sdkmanager "build-tools;34.0.0-rc3"
 
@@ -37,14 +38,12 @@ on:
           pip install buildozer cython kivy
           echo yes | ${ANDROID_HOME}/cmdline-tools/tools/bin/sdkmanager "build-tools;34.0.0" && \
           echo yes | ${ANDROID_HOME}/cmdline-tools/tools/bin/sdkmanager "platforms;android-33"
-
           
-
       - name: Build APK
         run: buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ndsn.apk
+          name: ndsn-apk
           path: bin/*.apk
