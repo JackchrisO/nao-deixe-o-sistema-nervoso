@@ -24,6 +24,10 @@ jobs:
       - name: List Android Packages
         run: ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --list
         
+      - name: Build APK with Buildozer
+        run: |
+          export APP_ANDROID_ACCEPT_SDK_LICENSE=1
+          yes y | buildozer android debug
 
 
       - name: Set up Python
