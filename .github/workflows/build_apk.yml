@@ -6,20 +6,21 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # Versão mais estável para builds do Buildozer
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential automake autoconf libtool pkg-config \
-            libffi-dev python3-pip python3-setuptools python3-wheel \
-            zip unzip git openjdk-17-jdk-headless \
-            libssl-dev python3-dev \
-            libgl1-mesa-dev libgles2-mesa-dev
+            build-essential git ffmpeg libsdl2-dev libsdl2-image-dev \
+            libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev \
+            libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev \
+            autoconf automake libtool libtool-bin pkg-config libffi-dev \
+            libssl-dev python3-dev openjdk-17-jdk-headless \
+            zip unzip python3-setuptools
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -28,16 +29,15 @@ jobs:
 
       - name: Install Buildozer and Cython
         run: |
-          pip install --user --upgrade Cython==0.29.33 buildozer
-          # Adiciona o caminho do buildozer ao PATH para esta sessão
+          pip install --user --upgrade "Cython<3.0" buildozer
           echo "/home/runner/.local/bin" >> $GITHUB_PATH
 
       - name: Build APK with Buildozer
         run: |
           export APP_ANDROID_ACCEPT_SDK_LICENSE=1
-          yes y | python3 -m buildozer android debug
+          # O parâmetro -v mostra o log detalhado caso ocorra erro de compilação
+          yes y | python3 -m buildozer -v android debug
         env:
-          # Garante que o buildozer encontre as ferramentas
           PATH: /home/runner/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
       - name: Upload APK
