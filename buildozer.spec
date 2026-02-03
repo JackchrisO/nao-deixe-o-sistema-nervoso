@@ -6,31 +6,20 @@ source.dir = .
 version = 0.1
 source.include_exts = py,png,jpg,kv,atlas
 
-# Suporte a 32 e 64 bits
-android.archs = armeabi-v7a, arm64-v8a
+# Recomendo testar primeiro apenas com arm64-v8a para ser mais rápido
+android.archs = arm64-v8a
 
-# API mínima e alvo
+# Configurações de API atualizadas para 2024/2025
 android.minapi = 21
-android.api = 30
+android.api = 34
 android.ndk = 25b
-
-
+android.accept_sdk_license = True
 android.permissions = INTERNET
-      - name: Accept licenses and install Build Tools
-        run: |
-          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses
-          ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0" "platforms;android-33"
-          android.accept_sdk_license = True
-           android.api = 34
-           android.minapi = 21
-[requirements]
 
-requirements = kivy, cython
+requirements = python3,kivy,cython
 
 [presplash]
-presplash.color = 0x000000
-android.accept_sdk_license = True
-[icon]
+presplash.color = 000000
 
 [buildozer]
 log_level = 2
