@@ -1,45 +1,21 @@
 # main.py
 import json, os, uuid, hashlib, datetime, re
 from kivy.metrics import dp
+from kivy.lang import Builder
 from kivy.utils import platform
-from kivy.core.window import Window
-
 from kivymd.app import MDApp
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.button import MDRaisedButton, MDFlatButton
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.label import MDLabel
-from kivymd.uix.textfield import MDTextField
+from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.list import OneLineListItem
-from kivymd.uix.picker import MDDatePicker, MDTimePicker
-from kivymd.uix.menu import MDDropdownMenu
-from kivymd.uix.snackbar import Snackbar
-from kivymd.uix.card import MDCard
-from kivymd.uix.toolbar import MDTopAppBar
-from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.selectioncontrol import MDCheckbox
 
 # =========================
-# CONFIG
+# ARQUIVOS
 # =========================
-ROXO = " #8a2be2"
-LILAS = "#b39ddb"
-AZUL = "#81d4fa"
-
 USERS_FILE = "data/usuarios.json"
-CRISES_FILE = "data/crises.json"
-DIARIO_FILE = "data/diario.json"
-MEDS_FILE = "data/medicamentos.json"
-CONSULTAS_FILE = "data/consultas.json"
-ATIVIDADES_FILE = "data/atividades.json"
-ALIMENTACAO_FILE = "data/alimentacao.json"
-REGISTROS_FILE = "data/registros.json"
-
-SESSAO = {}
+REG_FILE = "data/registros.json"
 
 # =========================
-# UTIL
+# UTILS
 # =========================
 def ensure_data_dir():
     os.makedirs("data", exist_ok=True)
@@ -74,6 +50,13 @@ def alerta_palavras(texto):
     texto = texto.lower()
     return any(p in texto for p in palavras)
 
+def dias_ate(data_str):
+    try:
+        data = datetime.date.fromisoformat(data_str)
+        return (data - datetime.date.today()).days
+    except:
+        return None
+
 # =========================
 # APP
 # =========================
@@ -82,29 +65,11 @@ class SynapseApp(MDApp):
     def build(self):
         self.theme_cls.primary_palette = "DeepPurple"
         self.theme_cls.theme_style = "Light"
-        self.load_all()
+
+        self.usuarios = load_json(USERS_FILE)
+        self.registros = load_json(REG_FILE)
 
         return Builder.load_file("synapse.kv")
-
-    def load_all(self):
-        self.usuarios = load_json(USERS_FILE)
-        self.crises = load_json(CRISES_FILE)
-        self.diario = load_json(DIARIO_FILE)
-        self.meds = load_json(MEDS_FILE)
-        self.consultas = load_json(CONSULTAS_FILE)
-        self.atividades = load_json(ATIVIDADES_FILE)
-        self.alimentacao = load_json(ALIMENTACAO_FILE)
-        self.registros = load_json(REGISTROS_FILE)
-
-    def salvar_todos(self):
-        save_json(USERS_FILE, self.usuarios)
-        save_json(CRISES_FILE, self.crises)
-        save_json(DIARIO_FILE, self.diario)
-        save_json(MEDS_FILE, self.meds)
-        save_json(CONSULTAS_FILE, self.consultas)
-        save_json(ATIVIDADES_FILE, self.atividades)
-        save_json(ALIMENTACAO_FILE, self.alimentacao)
-        save_json(REGISTROS_FILE, self.registros)
 
     # -------------------
     # LOGIN
@@ -114,7 +79,6 @@ class SynapseApp(MDApp):
         p = self.root.ids.login_pwd.text.strip()
 
         if u == "adm" and p == "adm":
-            SESSAO["user"] = "adm"
             self.root.ids.screen_manager.current = "admin"
             return
 
@@ -127,10 +91,11 @@ class SynapseApp(MDApp):
             self.root.ids.login_msg.text = "Senha incorreta"
             return
 
-        SESSAO["user"] = u
+        self.user = u
         self.root.ids.login_msg.text = ""
         self.root.ids.screen_manager.current = "principal"
         self.atualizar_menu()
+        self.check_alertas()
 
     # -------------------
     # CADASTRO
@@ -158,7 +123,7 @@ class SynapseApp(MDApp):
             "salt": salt,
             "motivo": motivo
         }
-        self.salvar_todos()
+        save_json(USERS_FILE, self.usuarios)
         self.root.ids.screen_manager.current = "login"
         self.root.ids.cad_msg.text = ""
 
@@ -166,14 +131,39 @@ class SynapseApp(MDApp):
     # MENU PRINCIPAL
     # -------------------
     def atualizar_menu(self):
-        user = SESSAO.get("user")
-        if not user:
-            return
-        motivo = self.usuarios[user]["motivo"]
+        motivo = self.usuarios[self.user]["motivo"]
+        if motivo in ["Epilepsia", "Ambos"]:
+            self.root.ids.btn_crises.opacity = 1
+            self.root.ids.btn_crises.disabled = False
+        else:
+            self.root.ids.btn_crises.opacity = 0
+            self.root.ids.btn_crises.disabled = True
 
-        # Se for só psicologico, remove registrar crises
-        self.root.ids.btn_crises.opacity = 1 if motivo in ["Epilepsia", "Ambos"] else 0
-        self.root.ids.btn_crises.disabled = False if motivo in ["Epilepsia", "Ambos"] else True
+    # -------------------
+    # ALERTAS
+    # -------------------
+    def check_alertas(self):
+        # medicamentos
+        meds = self.registros.get(self.user, {}).get("medicamentos", [])
+        avisos = []
+        for m in meds:
+            dias = dias_ate(m.get("prox_compra", m.get("compra", "")))
+            if dias is not None and dias <= 5:
+                avisos.append(f"{m['nome']} acaba em {dias} dias")
+
+        # consultas (1 dia antes)
+        cons = self.registros.get(self.user, {}).get("consultas", [])
+        for c in cons:
+            dias = dias_ate(c.get("data", ""))
+            if dias is not None and dias == 1:
+                avisos.append(f"Consulta amanhã: {c['nome']}")
+
+        if avisos:
+            MDDialog(
+                title="Alertas",
+                text="\n".join(avisos),
+                buttons=[MDFlatButton(text="OK", on_release=lambda x: self.dialog.dismiss())]
+            ).open()
 
     # -------------------
     # CRISES
@@ -209,9 +199,13 @@ class SynapseApp(MDApp):
         }
 
         for crise, subs in CRISES.items():
-            btn = MDRaisedButton(text=crise, md_bg_color=(0.72,0.65,1,1))
-            btn.bind(on_release=lambda inst, c=crise, s=subs: self.abrir_subcrises(c, s))
-            self.root.ids.crises_box.add_widget(btn)
+            self.root.ids.crises_box.add_widget(
+                MDRaisedButton(
+                    text=crise,
+                    md_bg_color=(0.72,0.65,1,1),
+                    on_release=lambda inst, c=crise, s=subs: self.abrir_subcrises(c, s)
+                )
+            )
 
     def abrir_subcrises(self, crise, subs):
         self.root.ids.screen_manager.current = "subcrises"
@@ -219,48 +213,110 @@ class SynapseApp(MDApp):
         self.root.ids.subcrises_box.clear_widgets()
 
         for nome, desc in subs:
-            btn = MDRaisedButton(text=nome, md_bg_color=(0.81,0.88,1,1))
-            btn.bind(on_release=lambda inst, n=nome: self.registrar_crise(crise, n))
-            self.root.ids.subcrises_box.add_widget(btn)
+            self.root.ids.subcrises_box.add_widget(
+                MDRaisedButton(
+                    text=nome,
+                    md_bg_color=(0.81,0.88,1,1),
+                    on_release=lambda inst, n=nome: self.registrar_crise(crise, n)
+                )
+            )
 
     def registrar_crise(self, crise, sub):
-        user = SESSAO.get("user")
-        if not user: return
-
         registro = {
             "data": str(datetime.date.today()),
             "hora": str(datetime.datetime.now().time())[:8],
             "crise": crise,
             "subcrise": sub
         }
-        self.registros.setdefault(user, {}).setdefault("crises", []).append(registro)
-        self.salvar_todos()
+        self.registros.setdefault(self.user, {}).setdefault("crises", []).append(registro)
+        save_json(REG_FILE, self.registros)
         Snackbar(text="Crise registrada!").open()
 
     def ver_crises_registradas(self):
-        user = SESSAO.get("user")
-        if not user: return
         self.root.ids.screen_manager.current = "crises_reg"
         self.root.ids.crises_reg_box.clear_widgets()
-
-        registros = self.registros.get(user, {}).get("crises", [])
+        registros = self.registros.get(self.user, {}).get("crises", [])
         for r in registros:
             self.root.ids.crises_reg_box.add_widget(
                 OneLineListItem(text=f"{r['data']} {r['hora']} - {r['crise']} ({r['subcrise']})")
             )
 
     # -------------------
-    # DIARIO
+    # DIÁRIO
     # -------------------
+    def gerar_frases(self):
+        frases = {
+            "Bom": [
+                "Hoje foi um dia leve e tranquilo.",
+                "Me senti bem e com energia.",
+                "Consegui fazer coisas que gosto.",
+                "Tive momentos de alegria hoje.",
+                "Me senti em paz comigo mesmo.",
+                "Aproveitei bem o dia.",
+                "Me senti orgulhoso de mim.",
+                "Foi um dia produtivo e positivo.",
+                "Senti conexão com pessoas queridas.",
+                "Hoje eu me senti confortável em ser eu."
+            ],
+            "Neutro": [
+                "Hoje foi um dia normal, sem grandes emoções.",
+                "Não foi ruim, mas também não foi ótimo.",
+                "Me senti no automático hoje.",
+                "Tive momentos bons e outros não tão bons.",
+                "Meu humor ficou estável.",
+                "Senti que o dia passou devagar.",
+                "Fiquei mais observando do que sentindo.",
+                "Foi um dia comum, sem surpresas.",
+                "Me senti meio indiferente hoje.",
+                "Hoje foi um dia de rotina."
+            ],
+            "Ruim": [
+                "Hoje eu me senti cansado e sem forças.",
+                "Tive dificuldade para fazer coisas simples.",
+                "Me senti sobrecarregado com tudo.",
+                "Tive medo de não dar conta.",
+                "Senti que nada fazia sentido.",
+                "Me senti sozinho mesmo estando com gente.",
+                "Meu corpo parecia pesado hoje.",
+                "Senti tristeza sem motivo aparente.",
+                "Tive vontade de desaparecer.",
+                "Meu coração parecia apertado o dia todo.",
+                "Senti raiva de mim mesmo.",
+                "Tive dificuldade para respirar e me acalmar.",
+                "Me senti inútil hoje.",
+                "Senti que ninguém me entende.",
+                "Tive pensamentos negativos repetidos.",
+                "Senti que não tenho saída.",
+                "Me senti muito ansioso o dia todo.",
+                "Tive dificuldade para dormir por causa da mente.",
+                "Senti que o mundo estava pesado demais."
+            ]
+        }
+
+        humor = self.root.ids.diario_humor.text.strip().title()
+        if humor not in ["Bom", "Neutro", "Ruim"]:
+            Snackbar(text="Marque o humor primeiro: Bom / Neutro / Ruim").open()
+            return
+
+        frases_list = frases[humor]
+        texto = "\n".join([f"{i+1}. {f}" for i, f in enumerate(frases_list)])
+
+        self.dialog = MDDialog(
+            title="Frases para te ajudar",
+            text=texto,
+            size_hint=(0.9, 0.8),
+            buttons=[
+                MDFlatButton(text="Fechar", on_release=lambda x: self.dialog.dismiss())
+            ]
+        )
+        self.dialog.open()
+
     def salvar_diario(self):
-        user = SESSAO.get("user")
-        if not user: return
-
+        humor = self.root.ids.diario_humor.text.strip().title()
         texto = self.root.ids.diario_text.text.strip()
-        humor = self.root.ids.diario_humor.text.strip()
 
-        if humor not in ["Bom","Neutro","Ruim"]:
-            Snackbar(text="Marque o humor: Bom, Neutro ou Ruim").open()
+        if humor not in ["Bom", "Neutro", "Ruim"]:
+            Snackbar(text="Marque o humor: Bom / Neutro / Ruim").open()
             return
 
         if alerta_palavras(texto):
@@ -271,14 +327,14 @@ class SynapseApp(MDApp):
             "humor": humor,
             "texto": texto
         }
-        self.registros.setdefault(user, {}).setdefault("diario", []).append(registro)
-        self.salvar_todos()
+        self.registros.setdefault(self.user, {}).setdefault("diario", []).append(registro)
+        save_json(REG_FILE, self.registros)
         Snackbar(text="Diário salvo!").open()
 
     def dialog_alerta(self):
         self.dialog = MDDialog(
             title="Olá, você não parece tão bem hoje...",
-            text="Você merece cuidado. Se estiver em risco, ligue para o número de emergência.\n\n📞 188 (CVV Brasil)\n📞 192 / 193",
+            text="Você merece cuidado. Se estiver em risco, ligue para:\n\n📞 188 (CVV Brasil)\n📞 192 / 193",
             buttons=[
                 MDFlatButton(text="OK", on_release=lambda x: self.dialog.dismiss())
             ]
@@ -290,57 +346,99 @@ class SynapseApp(MDApp):
     # -------------------
     def abrir_meds(self):
         self.root.ids.screen_manager.current = "meds"
+        self.atualiza_lista_meds()
+
+    def atualiza_lista_meds(self):
         self.root.ids.meds_box.clear_widgets()
-        user = SESSAO.get("user")
-        registros = self.registros.get(user, {}).get("medicamentos", [])
-        for m in registros:
-            self.root.ids.meds_box.add_widget(
-                OneLineListItem(text=f"{m['nome']} - {m['mg']}mg - {m['freq']}x/dia - compra: {m['compra']}")
-            )
+        meds = self.registros.get(self.user, {}).get("medicamentos", [])
+        for i, m in enumerate(meds):
+            item = OneLineListItem(text=f"{m['nome']} - {m['mg']}mg - {m['freq']}x/dia - compra: {m['compra']}")
+            item.bind(on_release=lambda inst, idx=i: self.dialog_edita_med(idx))
+            self.root.ids.meds_box.add_widget(item)
 
     def registrar_med(self):
-        user = SESSAO.get("user")
-        if not user: return
-
         nome = self.root.ids.med_nome.text.strip()
         mg = self.root.ids.med_mg.text.strip()
         freq = self.root.ids.med_freq.text.strip()
         compra = self.root.ids.med_compra.text.strip()
 
-        registro = {"nome": nome, "mg": mg, "freq": freq, "compra": compra}
-        self.registros.setdefault(user, {}).setdefault("medicamentos", []).append(registro)
-        self.salvar_todos()
+        if not nome or not mg or not freq or not compra:
+            Snackbar(text="Preencha todos os campos").open()
+            return
+
+        try:
+            datetime.date.fromisoformat(compra)
+        except:
+            Snackbar(text="Data inválida (AAAA-MM-DD)").open()
+            return
+
+        prox = datetime.date.fromisoformat(compra) + datetime.timedelta(days=30)
+        registro = {"nome": nome, "mg": mg, "freq": freq, "compra": compra, "prox_compra": str(prox)}
+
+        self.registros.setdefault(self.user, {}).setdefault("medicamentos", []).append(registro)
+        save_json(REG_FILE, self.registros)
+        self.atualiza_lista_meds()
         Snackbar(text="Medicamento registrado!").open()
+
+    def dialog_edita_med(self, idx):
+        med = self.registros[self.user]["medicamentos"][idx]
+
+        self.dialog = MDDialog(
+            title="Editar / Excluir",
+            text=f"{med['nome']} - {med['mg']}mg",
+            buttons=[
+                MDFlatButton(text="Excluir", on_release=lambda x: self.excluir_med(idx)),
+                MDFlatButton(text="Fechar", on_release=lambda x: self.dialog.dismiss())
+            ]
+        )
+        self.dialog.open()
+
+    def excluir_med(self, idx):
+        self.registros[self.user]["medicamentos"].pop(idx)
+        save_json(REG_FILE, self.registros)
+        self.dialog.dismiss()
+        self.atualiza_lista_meds()
+        Snackbar(text="Medicamento excluído").open()
 
     # -------------------
     # CONSULTAS
     # -------------------
     def registrar_consulta(self):
-        user = SESSAO.get("user")
-        if not user: return
-
         nome = self.root.ids.cons_nome.text.strip()
         esp = self.root.ids.cons_esp.text.strip()
         data = self.root.ids.cons_data.text.strip()
         hora = self.root.ids.cons_hora.text.strip()
 
+        if not nome or not esp or not data or not hora:
+            Snackbar(text="Preencha todos os campos").open()
+            return
+
+        try:
+            datetime.date.fromisoformat(data)
+        except:
+            Snackbar(text="Data inválida (AAAA-MM-DD)").open()
+            return
+
         registro = {"nome": nome, "esp": esp, "data": data, "hora": hora}
-        self.registros.setdefault(user, {}).setdefault("consultas", []).append(registro)
-        self.salvar_todos()
+        self.registros.setdefault(self.user, {}).setdefault("consultas", []).append(registro)
+        save_json(REG_FILE, self.registros)
         Snackbar(text="Consulta registrada!").open()
 
     # -------------------
     # ATIVIDADES
     # -------------------
     def registrar_atividade(self):
-        user = SESSAO.get("user")
-        if not user: return
         nome = self.root.ids.ativ_nome.text.strip()
         tempo = self.root.ids.ativ_tempo.text.strip()
         intensidade = self.root.ids.ativ_int.text.strip()
+
+        if not nome or not tempo or not intensidade:
+            Snackbar(text="Preencha todos os campos").open()
+            return
+
         registro = {"nome": nome, "tempo": tempo, "intensidade": intensidade}
-        self.registros.setdefault(user, {}).setdefault("atividades", []).append(registro)
-        self.salvar_todos()
+        self.registros.setdefault(self.user, {}).setdefault("atividades", []).append(registro)
+        save_json(REG_FILE, self.registros)
         Snackbar(text="Atividade registrada!").open()
 
     # -------------------
@@ -364,9 +462,13 @@ class SynapseApp(MDApp):
         }
 
         for tipo, subs in TIPOS.items():
-            btn = MDRaisedButton(text=tipo, md_bg_color=(0.72,0.65,1,1))
-            btn.bind(on_release=lambda inst, t=tipo, s=subs: self.abrir_sub_alim(t, s))
-            self.root.ids.alim_box.add_widget(btn)
+            self.root.ids.alim_box.add_widget(
+                MDRaisedButton(
+                    text=tipo,
+                    md_bg_color=(0.72,0.65,1,1),
+                    on_release=lambda inst, t=tipo, s=subs: self.abrir_sub_alim(t, s)
+                )
+            )
 
     def abrir_sub_alim(self, tipo, subs):
         self.root.ids.screen_manager.current = "sub_alim"
@@ -374,38 +476,67 @@ class SynapseApp(MDApp):
         self.root.ids.sub_alim_box.clear_widgets()
 
         for s in subs:
-            btn = MDRaisedButton(text=s, md_bg_color=(0.81,0.88,1,1))
-            btn.bind(on_release=lambda inst, sub=s: self.registrar_alim(tipo, sub))
-            self.root.ids.sub_alim_box.add_widget(btn)
+            self.root.ids.sub_alim_box.add_widget(
+                MDRaisedButton(
+                    text=s,
+                    md_bg_color=(0.81,0.88,1,1),
+                    on_release=lambda inst, sub=s: self.registrar_alim(tipo, sub)
+                )
+            )
 
     def registrar_alim(self, tipo, sub):
-        user = SESSAO.get("user")
         registro = {"data": str(datetime.date.today()), "tipo": tipo, "sub": sub}
-        self.registros.setdefault(user, {}).setdefault("alimentacao", []).append(registro)
-        self.salvar_todos()
+        self.registros.setdefault(self.user, {}).setdefault("alimentacao", []).append(registro)
+        save_json(REG_FILE, self.registros)
         Snackbar(text="Alimentação registrada!").open()
 
     # -------------------
     # ANALISE
     # -------------------
     def abrir_analise(self, dias=7):
-        user = SESSAO.get("user")
         self.root.ids.screen_manager.current = "analise"
         self.root.ids.analise_box.clear_widgets()
 
         data_fim = datetime.date.today()
         data_ini = data_fim - datetime.timedelta(days=dias)
 
-        # mostra resumo simples
-        registros = self.registros.get(user, {})
+        registros = self.registros.get(self.user, {})
         diario = registros.get("diario", [])
         crises = registros.get("crises", [])
-        meds = registros.get("medicamentos", [])
 
         resumo = f"Resumo últimos {dias} dias:\n"
         resumo += f"Diário: {len([d for d in diario if data_ini <= datetime.date.fromisoformat(d['data']) <= data_fim])}\n"
         resumo += f"Crises: {len([c for c in crises if data_ini <= datetime.date.fromisoformat(c['data']) <= data_fim])}\n"
-        resumo += f"Medicamentos: {len(meds)}\n"
 
-        self.root.ids.analise_box.add_widget(MDLabel(text=resumo, theme_text_color="Primary"))
+        self.root.ids.analise_box.add_widget(
+            MDLabel(text=resumo, theme_text_color="Primary")
+        )
 
+        self.root.ids.analise_box.add_widget(
+            MDRaisedButton(
+                text="Ver últimos 30 dias",
+                md_bg_color=(0.72,0.65,1,1),
+                on_release=lambda x: self.abrir_analise(30)
+            )
+        )
+
+    # -------------------
+    # ADMIN
+    # -------------------
+    def abrir_admin(self):
+        self.root.ids.screen_manager.current = "admin"
+
+    def ver_dados(self):
+        self.root.ids.admin_box.clear_widgets()
+        for u, info in self.usuarios.items():
+            if u == "adm": continue
+            self.root.ids.admin_box.add_widget(
+                OneLineListItem(text=f"{u} | idade: {info['idade']} | motivo: {info['motivo']}")
+            )
+
+    def sair(self):
+        self.root.ids.screen_manager.current = "login"
+        self.user = None
+
+if __name__ == "__main__":
+    SynapseApp().run()
