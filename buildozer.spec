@@ -8,18 +8,17 @@ source.include_exts = py,png,jpg,kv,atlas
 
 version = 0.1
 
-# libs necessárias
-requirements = python3,kivy,requests,plyer
+requirements = python3,kivy
 
 orientation = portrait
 
 android.archs = arm64-v8a
-android.minapi = 29
+android.minapi = 21
 android.api = 29
 android.ndk = 25b
 android.accept_sdk_license = True
 
-android.permissions = INTERNET, CAMERA
+android.permissions = INTERNET
 
 [presplash]
 presplash.color = 000000
