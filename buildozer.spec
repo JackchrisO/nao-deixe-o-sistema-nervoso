@@ -10,7 +10,7 @@ version = 0.1
 
 android.archs = arm64-v8a
 android.minapi = 21
-android.api = 34
+android.api = 29
 android.ndk = 25b
 android.accept_sdk_license = True
 
