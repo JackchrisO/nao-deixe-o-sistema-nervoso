@@ -9,7 +9,8 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -21,6 +22,12 @@ jobs:
         run: |
           echo "JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64" >> $GITHUB_ENV
           echo "/usr/lib/jvm/temurin-17-jdk-amd64/bin" >> $GITHUB_PATH
+
+      # 🔥 PASSO QUE FALTAVA
+      - name: Install Android NDK 25b
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25b
 
       - name: Set up Python
         uses: actions/setup-python@v5
