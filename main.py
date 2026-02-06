@@ -309,24 +309,34 @@ class Cadastro(Screen):
 class Principal(Screen):
     def __init__(self, **kw):
         super().__init__(**kw)
-        scroll = ScrollView(size_hint=(1,1))
+
+        scroll = ScrollView(size_hint=(1, 1))
         box = BoxLayout(orientation="vertical", padding=20, spacing=15, size_hint_y=None)
         box.bind(minimum_height=box.setter("height"))
         scroll.add_widget(box)
         self.add_widget(scroll)
 
-        box.add_widget(label_central("MENU PRINCIPAL",28))
-        box.add_widget(Label(
-            text="Não deixe o sistema nervoso",
-            font_size=14,
-            color=(0,0,0,0.5),
-            halign="center"
-        ))
+        box.add_widget(label_central("MENU PRINCIPAL", 28))
 
-        botoes = ["Registrar Crises","Diário","Alimentação","Atividades Físicas","Consultas","Medicamentos","Análise"]
+        botoes = [
+            "Registrar Crises",
+            "Diário",
+            "Alimentação",
+            "Atividades Físicas",
+            "Consultas",
+            "Medicamentos",
+            "Análise"
+        ]
+
         for txt in botoes:
-            box.add_widget(BotaoPremium(txt))
-            box.add_widget(Widget(size_hint_y=None,height=8))
+            btn = BotaoPremium(txt)
+            btn.bind(on_release=lambda inst, t=txt: self.botao_clicado(t))
+            box.add_widget(btn)
+            box.add_widget(Widget(size_hint_y=None, height=8))
+
+    def botao_clicado(self, texto):
+        print(f"Botão clicado: {texto}")
+        # aqui você pode abrir uma nova tela ou mostrar mensagem
 
 # ================= APP =================
 class AppMain(App):
@@ -339,3 +349,4 @@ class AppMain(App):
 
 if __name__ == "__main__":
     AppMain().run()
+
