@@ -1,6 +1,6 @@
 [app]
 title = Synapse
-package.name = naodeixeosistemanervoso
+package.name = synapse
 package.domain = com.jack.neuroapp
 
 source.dir = .
@@ -8,17 +8,18 @@ source.include_exts = py,png,jpg,kv,atlas
 
 version = 0.1
 
+# libs necessárias
+requirements = python3,kivy,requests,plyer
+
+orientation = portrait
+
 android.archs = arm64-v8a
 android.minapi = 29
 android.api = 34
 android.ndk = 25b
 android.accept_sdk_license = True
 
-requirements = python3,kivy,openssl,sqlite3
-
-orientation = portrait
-
-android.permissions = INTERNET
+android.permissions = INTERNET, CAMERA, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 
 [presplash]
 presplash.color = 000000
