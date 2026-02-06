@@ -1,28 +1,12 @@
 [app]
 title = Synapse
 package.name = synapse
-package.domain = com.jack.neuroapp
-
+package.domain = org.synapse
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas
-
 version = 0.1
-
-requirements = python3,kivy
-
-orientation = portrait
-
-android.archs = arm64-v8a
-android.minapi = 21
+requirements = python3,kivy==2.1.0,kivymd==1.1.1
 android.api = 29
-android.ndk = 25b
-android.accept_sdk_license = True
-
-android.permissions = INTERNET
-
-[presplash]
-presplash.color = 000000
-
-[buildozer]
-log_level = 2
-warn_on_root = 1
+android.minapi = 21
+android.sdk = 29
+android.ndk = 19b
+orientation = portrait
